@@ -1,0 +1,6 @@
+[submodule "php-simulation-env"]
+	path = php-simulation-env
+	url = git@github.com:fis-dev/php-simulation-env.git
+[submodule "smarty"]
+	path = smarty
+	url = git@github.com:fis-dev/smarty.git
