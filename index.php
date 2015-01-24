@@ -14,24 +14,27 @@ function init($config) {
     // log init
     Log::getLogger(array(
         'fd' => WWW_ROOT . '/app.log',
-        'level' => Log::ALL
+        'level' => Log::ALL,
+        'requestUrl' => $_SERVER['REQUEST_URI']
     ));
 
     // mock init
-    Mock::init(WWW_ROOT . '/test', $config['encoding']);
+    Mock::init(WWW_ROOT, $config['encoding']);
 
     // rewrite init
     $rewrite = new Rewrite(WWW_ROOT . '/server-conf', $config['encoding']);
     $rewrite->addRule(Rule::REWRITE, '@/static/.*@', '$&');
     $rewrite->addConfigFile($config['namespace'] . '.conf');
     $rewrite->addConfigFile('common.conf');
+    $rewrite->addRule(Rule::REWRITE, '@^/?$@', 'welcome.php');
     $rewrite->dispatch();
 }
 
 function routing() {
     $requestUri = $_SERVER['REQUEST_URI'];
     $requestUri = preg_replace('@\?.*$@', '', $requestUri);
-    $uriSplit = explode('/', substr($requestUri, 1));
+    $requestUri = substr($requestUri, 1);
+    $uriSplit = explode('/', $requestUri);
     $smartyConfigFile = realpath(WWW_ROOT . '/smarty.conf');
     $config = array(
         'namespace' => $uriSplit[0],
@@ -58,13 +61,18 @@ function routing() {
     }
 
     init($config);
+
     $smarty = new Smarty();
 
     $smarty->setTemplateDir($config['smarty']['template_dir']);
     $smarty->setConfigDir($config['smarty']['config_dir']);
+    $smarty->setLeftDelimiter($config['smarty']['left_delimiter']);
+    $smarty->setRightDelimiter($config['smarty']['right_delimiter']);
+
     foreach($config['smarty']['plugins_dir'] as $pluginDir) {
         $smarty->addPluginsDir($pluginDir);
     }
+    
     $tpl = $requestUri . '.tpl';
     $smarty->assign((array)Mock::getData($tpl));
     $smarty->display($tpl);
