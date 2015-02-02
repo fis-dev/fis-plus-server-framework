@@ -4,21 +4,12 @@ define('WWW_ROOT', dirname(__FILE__));
 
 require(WWW_ROOT . '/smarty/Smarty.class.php');
 require(WWW_ROOT . '/php-simulation-env/log/Log.class.php');
+require(WWW_ROOT . '/php-simulation-env/util/Util.class.php');
 require(WWW_ROOT . '/php-simulation-env/mock-data/Mock.class.php');
 require(WWW_ROOT . '/php-simulation-env/rewrite/Rewrite.class.php');
 
 
 function initSmarty($config) {
-    $smartyConfigFile = realpath(WWW_ROOT . '/smarty.conf');
-    if ($smartyConfigFile) {
-        $smartyConfig = parse_ini_file($smartyConfigFile);
-        if (isset($smartyConfig['encoding'])) {
-            //ugly, .... @TODO
-            $config['encoding'] = $smartyConfig['encoding'];
-            unset($smartyConfig['encoding']);
-        }
-        $config['smarty'] = array_merge($config['smarty'], (array) $smartyConfig);
-    }
 
     $smarty = new Smarty();
 
@@ -41,8 +32,39 @@ class TplRewirteHandle implements RewriteHandle {
     }
 
     public function process($file) {
+        $file = str_replace(WWW_ROOT . '/', '', $file);
         $this->_smarty->assign(Mock::getData($file));
         $this->_smarty->display($file);
+    }
+}
+
+class JsonRewriteHandle implements RewriteHandle {
+    private $_charset = null;
+
+    public function __construct($charset) {
+        $this->_charset = $charset;
+    }
+
+    public function process($file) {
+
+        Log::getLogger()->info('JsonRewriteHandle file: %s', $file);
+
+        if (!file_exists($file)) {
+            Log::getLogger()->warn('JSON file<%s> not exists.', $file);
+            return;
+        }
+
+        $content = file_get_contents($file);
+
+        if (($this->_charset != 'utf-8' || $this->_charset != 'utf8') && Util::isUtf8($content)) {
+            Log::getLogger()->info('JsonRewriteHandle convert utf-8 to %s', $this->_charset);
+            $content = Util::convertEncoding($content, 'utf-8', $this->_charset);
+        }
+
+        Log::getLogger()->info('JsonRewriteHandle put the content of JSON file: %s, charset: %s', $file, $this->_charset);
+        
+        header('Content-Type: text/json; charset='.$this->_charset);
+        echo $content;
     }
 }
 
@@ -70,15 +92,12 @@ function init($config, $smarty) {
     $rewrite->addRule(Rule::REWRITE, '@^/?$@', 'welcome.php');
 
     $rewrite->addRewriteHandle('tpl', new TplRewirteHandle($smarty));
+    $rewrite->addRewriteHandle('json', new JsonRewriteHandle($config['encoding']));
 
     $rewrite->dispatch();
 }
 
-function routing() {
-    $requestUri = $_SERVER['REQUEST_URI'];
-    $requestUri = preg_replace('@\?.*$@', '', $requestUri);
-    $requestUri = substr($requestUri, 1);
-    $uriSplit = explode('/', $requestUri);
+function getConfig() {
     $config = array(
         'namespace' => $uriSplit[0],
         'encoding' => 'utf-8',
@@ -93,8 +112,30 @@ function routing() {
         ) 
     );
 
-    $smarty = initSmarty($config);
+    $smartyConfigFile = realpath(WWW_ROOT . '/smarty.conf');
+    if ($smartyConfigFile) {
+        $smartyConfig = parse_ini_file($smartyConfigFile);
+        if (isset($smartyConfig['encoding'])) {
+            //ugly, .... @TODO
+            $config['encoding'] = $smartyConfig['encoding'];
+            unset($smartyConfig['encoding']);
+        }
+        $config['smarty'] = array_merge($config['smarty'], (array) $smartyConfig);
+    }
 
+    return $config;
+}
+
+function routing() {
+    $requestUri = $_SERVER['REQUEST_URI'];
+    $requestUri = preg_replace('@\?.*$@', '', $requestUri);
+    $requestUri = substr($requestUri, 1);
+    $uriSplit = explode('/', $requestUri);
+
+    $config = getConfig();
+
+    $smarty = initSmarty($config);
+    
     init($config, $smarty);
 
     $tpl = $requestUri . '.tpl';

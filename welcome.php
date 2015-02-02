@@ -1,12 +1,13 @@
+<!DOCTYPE html>
 <html>
     <head>
-        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-
+        <meta charset="utf-8">
         <title>Welcome FIS-PLUS</title>
     </head>
     <body>
         <p>
-            haha...
+            <?php
+            ?>
         </p>
     </body>
 </html>
