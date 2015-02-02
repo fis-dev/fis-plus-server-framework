@@ -16,6 +16,7 @@ server-framework of fis-plus
     git clone git@github.com:fis-dev/fis-plus-server-framework.git
     cd fis-plus-server-framework
     git submodule init
+    git submodule update
 
     cp * ~/.fis-plus-tmp/www/
 
