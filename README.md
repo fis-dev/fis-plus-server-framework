@@ -12,3 +12,14 @@ cp * ~/.fis-plus-tmp/www/
 
 ```
 @TODO fis server --prefix
+
+## config
+
+- config file: smarty.conf
+
+```ini
+left_delimiter="{%"
+right_delimiter="%}"
+
+encoding="gbk"
+```
