@@ -21,18 +21,23 @@ function initSmarty($config) {
     foreach($config['smarty']['plugins_dir'] as $pluginDir) {
         $smarty->addPluginsDir($pluginDir);
     }
+
     return $smarty;
 }
 
 class TplRewirteHandle implements RewriteHandle {
     private $_smarty = null;
+    private $_charset = 'utf-8';
 
-    public function __construct($smarty) {
+    public function __construct($smarty, $charset) {
         $this->_smarty = $smarty;
+        $this->_charset = $charset;
     }
 
     public function process($file) {
-        $file = str_replace(WWW_ROOT . '/', '', $file);
+        $file = str_replace(WWW_ROOT . '/template/', '', $file); // rewrite ...
+        $file = str_replace('template/', '', $file); // template ...
+        header('Content-Type: text/html;charset=' . $this->_charset);
         $this->_smarty->assign(Mock::getData($file));
         $this->_smarty->display($file);
     }
@@ -91,7 +96,7 @@ function init($config, $smarty) {
 
     $rewrite->addRule(Rule::REWRITE, '@^/?$@', 'welcome.php');
 
-    $rewrite->addRewriteHandle('tpl', new TplRewirteHandle($smarty));
+    $rewrite->addRewriteHandle('tpl', new TplRewirteHandle($smarty, $config['encoding']));
     $rewrite->addRewriteHandle('json', new JsonRewriteHandle($config['encoding']));
 
     $rewrite->dispatch();
@@ -139,6 +144,7 @@ function routing() {
     init($config, $smarty);
 
     $tpl = $requestUri . '.tpl';
+    header('Content-Type: text/html;charset=' . $config['encoding']);
     $smarty->assign((array)Mock::getData($tpl));
     $smarty->display($tpl);
 }
