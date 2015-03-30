@@ -102,7 +102,7 @@ function init($config, $smarty) {
     $rewrite->dispatch();
 }
 
-function getConfig() {
+function getConfig($uriSplit) {
     $config = array(
         'namespace' => $uriSplit[0],
         'encoding' => 'utf-8',
@@ -137,7 +137,7 @@ function routing() {
     $requestUri = substr($requestUri, 1);
     $uriSplit = explode('/', $requestUri);
 
-    $config = getConfig();
+    $config = getConfig($uriSplit);
 
     $smarty = initSmarty($config);
     
